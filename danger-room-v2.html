@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Danger Room — Verity Institute</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Mono:wght@300;400&display=swap');
+
+:root {
+  --bg:        #f0f0ed;
+  --surface:   #e8e8e4;
+  --panel:     #ddddd8;
+  --border:    #c8c8c2;
+  --border-hi: #a0a09a;
+  --text:      #1c1c1a;
+  --muted:     #767670;
+  --faint:     #b0b0aa;
+  --dim:       #d0d0ca;
+  --teal:      #2a5c5c;
+  --teal-dim:  #e4edec;
+  --teal-mid:  #4a8c8c;
+  --warn:      #4a2c0e;
+  --warn-dim:  #ece5dc;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Subtle fluorescent flicker — barely perceptible */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,252,0.04) 0%,
+    transparent 40%,
+    rgba(240,240,235,0.03) 100%
+  );
+  pointer-events: none; z-index: 0;
+  animation: flicker 8s ease-in-out infinite;
+}
+@keyframes flicker {
+  0%,100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.97; }
+  94% { opacity: 1; }
+  97% { opacity: 0.98; }
+  98% { opacity: 1; }
+}
+
+.screen { display: none; position: relative; z-index: 1; }
+.screen.active { display: flex; }
+
+/* ── PROGRESS ── */
+.prog-wrap {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 2px; background: var(--dim); z-index: 200;
+}
+.prog-fill {
+  height: 100%; background: var(--teal);
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1); width: 0%;
+}
+
+/* ── INTRO ── */
+#intro {
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(3rem, 7vw, 5rem) clamp(2rem, 6vw, 5rem);
+  max-width: 820px; margin: 0 auto; width: 100%;
+}
+
+.intro-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; padding-bottom: 3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.intro-dept {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--muted);
+  line-height: 1.8;
+}
+
+.intro-code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.55rem; letter-spacing: 0.15em;
+  color: var(--faint); text-align: right; line-height: 1.8;
+}
+
+.intro-body {
+  flex: 1; display: flex;
+  flex-direction: column; justify-content: center;
+  padding: 4rem 0;
+}
+
+.intro-title {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 300;
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  line-height: 1; letter-spacing: -0.02em;
+  color: var(--text); margin-bottom: 0.15rem;
+}
+
+.intro-title-room {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 500;
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  line-height: 1; letter-spacing: -0.02em;
+  color: var(--teal); margin-bottom: 3.5rem;
+}
+
+.intro-desc {
+  font-size: 0.82rem; line-height: 2;
+  color: var(--muted); max-width: 400px;
+  margin-bottom: 3rem;
+}
+
+.intro-desc strong { color: var(--text); font-weight: 400; }
+
+.propositions-list {
+  margin-bottom: 3.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.prop-list-header {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.prop-list-item {
+  display: flex; gap: 1rem; align-items: flex-start;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--dim);
+  font-size: 0.72rem; color: var(--text); line-height: 1.6;
+}
+.prop-list-item:last-child { border-bottom: none; }
+
+.prop-list-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.52rem; color: var(--faint);
+  flex-shrink: 0; padding-top: 0.15rem;
+  min-width: 1.2rem;
+}
+
+.enter-btn {
+  background: var(--teal); color: #f0f0ed;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem; letter-spacing: 0.24em;
+  text-transform: uppercase; padding: 0.85rem 2rem;
+  border: none; cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  display: inline-block; align-self: flex-start;
+}
+.enter-btn:hover { background: var(--text); }
+
+.intro-footer {
+  padding-top: 1.5rem; border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.intro-footer-note {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 0.1em;
+  color: var(--faint);
+}
+
+/* ── QUESTION ROOM ── */
+#room {
+  min-height: 100vh;
+  flex-direction: column; justify-content: center;
+  padding: clamp(3rem, 7vw, 5rem) clamp(2rem, 6vw, 5rem);
+  max-width: 780px; margin: 0 auto; width: 100%;
+}
+
+.room-hud {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 4rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+}
+
+.room-counter {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.55rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+.room-phase {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.5rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--teal);
+  background: var(--teal-dim);
+  padding: 0.2rem 0.65rem;
+  border: 1px solid rgba(42,92,92,0.2);
+}
+
+/* PROPOSITION */
+.proposition {
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  font-weight: 300; line-height: 1.4;
+  color: var(--text); margin-bottom: 3.5rem;
+  letter-spacing: -0.01em;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.proposition.visible { opacity: 1; transform: translateY(0); }
+
+/* COMMIT */
+.commit-wrap {
+  opacity: 0; transform: translateY(6px);
+  transition: opacity 0.45s ease 0.12s, transform 0.45s ease 0.12s;
+}
+.commit-wrap.visible { opacity: 1; transform: translateY(0); }
+
+.field-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 0.7rem;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.field-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--dim);
+}
+
+.commit-input {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  color: var(--text); font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem; font-weight: 300;
+  padding: 1rem 1.1rem; resize: none; outline: none;
+  line-height: 1.85; transition: border-color 0.2s, background 0.2s;
+  min-height: 85px;
+}
+.commit-input:focus {
+  border-color: var(--border-hi);
+  border-left-color: var(--teal);
+  background: #fff;
+}
+.commit-input::placeholder { color: var(--faint); }
+
+.commit-hint {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.5rem; letter-spacing: 0.1em;
+  color: var(--faint); margin-top: 0.4rem;
+  min-height: 1em;
+}
+
+/* PRESSURE */
+.pressure-wrap {
+  display: none; opacity: 0; transition: opacity 0.7s ease;
+}
+.pressure-wrap.visible { opacity: 1; }
+
+.pressure-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.5rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--warn);
+  margin-bottom: 1.2rem;
+  display: flex; align-items: center; gap: 0.7rem;
+}
+.pressure-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--dim);
+}
+
+.pressure-text {
+  font-size: 0.82rem; line-height: 2;
+  color: var(--text);
+  background: #e8e2d8;
+  border: 1px solid #c0b8ac;
+  border-left: 3px solid var(--warn);
+  padding: 1rem 1.2rem;
+  margin-bottom: 3rem;
+  white-space: pre-wrap;
+}
+
+/* HOLD/MOVE */
+.hold-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 0.8rem;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.hold-label::after { content: ''; flex: 1; height: 1px; background: var(--dim); }
+
+.hold-options {
+  display: flex; flex-direction: column; gap: 0.3rem;
+  margin-bottom: 2rem;
+}
+
+.hold-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem; font-weight: 300;
+  padding: 0.7rem 1rem; text-align: left;
+  cursor: pointer; transition: all 0.15s;
+  letter-spacing: 0.03em;
+}
+.hold-btn:hover { border-color: var(--border-hi); color: var(--text); background: var(--panel); }
+.hold-btn.selected {
+  border-color: var(--teal); color: var(--teal);
+  background: var(--teal-dim);
+  border-left: 3px solid var(--teal);
+}
+
+/* REFLECTION */
+.reflection-wrap {
+  display: none; opacity: 0;
+  transition: opacity 0.35s ease;
+  margin-top: 1.2rem;
+}
+.reflection-wrap.visible { opacity: 1; }
+
+.reflection-input {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--teal-mid);
+  color: var(--text); font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.76rem; font-weight: 300;
+  padding: 0.8rem 1rem; resize: none; outline: none;
+  line-height: 1.85; transition: border-color 0.2s, background 0.2s;
+  min-height: 52px;
+}
+.reflection-input:focus {
+  border-color: var(--border-hi);
+  border-left-color: var(--teal-mid);
+  background: #fff;
+}
+.reflection-input::placeholder { color: var(--faint); }
+
+/* NAV */
+.room-nav {
+  display: flex; justify-content: flex-end;
+  padding-top: 1.5rem; margin-top: 1rem;
+  border-top: 1px solid var(--dim);
+}
+
+.action-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 0.55rem 1.2rem; cursor: pointer; transition: all 0.15s;
+}
+.action-btn:hover { border-color: var(--border-hi); color: var(--text); }
+.action-btn:disabled { opacity: 0.18; cursor: default; pointer-events: none; }
+.action-btn.primary {
+  background: var(--teal); color: var(--bg);
+  border-color: var(--teal);
+}
+.action-btn.primary:hover { background: var(--text); border-color: var(--text); }
+
+/* Processing */
+.processing {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.55rem; letter-spacing: 0.18em;
+  color: var(--muted); text-transform: uppercase;
+}
+.dots-inline {
+  display: inline-flex; gap: 0.28rem;
+  margin-left: 0.4rem; vertical-align: middle;
+}
+.dots-inline span {
+  width: 3px; height: 3px; background: var(--muted); border-radius: 50%;
+  animation: dp 1.2s ease-in-out infinite;
+}
+.dots-inline span:nth-child(2) { animation-delay: 0.2s; }
+.dots-inline span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dp {
+  0%,100% { opacity: 0.2; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* ── RECORD ── */
+#record {
+  min-height: 100vh;
+  flex-direction: column; justify-content: flex-start;
+  padding: clamp(3.5rem, 7vw, 5.5rem) clamp(2rem, 6vw, 5rem) 6rem;
+  max-width: 780px; margin: 0 auto; width: 100%;
+}
+
+.record-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 3rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+}
+
+.record-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+.record-stamp {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.5rem; letter-spacing: 0.12em;
+  color: var(--faint); text-align: right;
+}
+
+.record-entries {
+  display: flex; flex-direction: column; gap: 0;
+  opacity: 0; transition: opacity 0.9s ease;
+  border: 1px solid var(--border);
+}
+.record-entries.visible { opacity: 1; }
+
+.record-entry {
+  padding: 1.6rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.record-entry:last-child { border-bottom: none; }
+
+.rec-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.rec-proposition {
+  font-size: 0.78rem; font-weight: 400;
+  line-height: 1.4; color: var(--text);
+  flex: 1;
+}
+
+.rec-verdict {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.48rem; letter-spacing: 0.18em;
+  text-transform: uppercase; flex-shrink: 0;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid;
+}
+.rec-verdict.held   { color: var(--teal);  border-color: rgba(42,92,92,0.35); background: var(--teal-dim); }
+.rec-verdict.moved  { color: var(--warn);  border-color: rgba(92,58,26,0.35); background: var(--warn-dim); }
+.rec-verdict.unsure { color: var(--muted); border-color: var(--border); background: var(--surface); }
+
+.rec-rows {
+  display: flex; flex-direction: column; gap: 0.7rem;
+}
+
+.rec-row {
+  display: flex; gap: 0; font-size: 0.72rem; line-height: 1.75;
+}
+
+.rec-row-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.48rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--faint);
+  min-width: 90px; padding-top: 0.15rem; flex-shrink: 0;
+}
+
+.rec-row-value { color: var(--muted); flex: 1; }
+.rec-row-value.position { color: var(--text); }
+.rec-row-value.reflection { color: var(--text); font-style: italic; }
+
+/* SYNTHESIS */
+.record-rule {
+  height: 1px; background: var(--border);
+  margin-top: 2.5rem; margin-bottom: 2.5rem;
+  opacity: 0; transition: opacity 0.8s ease 0.5s;
+}
+.record-rule.visible { opacity: 1; }
+
+.synthesis-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.52rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--teal);
+  margin-bottom: 1rem;
+}
+
+.record-close {
+  font-size: 0.78rem; line-height: 1.95;
+  color: var(--text); max-width: 520px;
+  opacity: 0; transition: opacity 0.8s ease;
+}
+.record-close.visible { opacity: 1; }
+
+.record-footer {
+  margin-top: 3rem; padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  opacity: 0; transition: opacity 0.8s ease 1.2s;
+  display: flex; gap: 1.5rem; align-items: center;
+}
+.record-footer.visible { opacity: 1; }
+
+.restart-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 0.55rem 1.1rem; cursor: pointer; transition: all 0.15s;
+}
+.restart-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+.share-note {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.5rem; letter-spacing: 0.1em; color: var(--faint);
+}
+
+@media (max-width: 560px) {
+  .hold-options { gap: 0.25rem; }
+  .rec-row { flex-direction: column; gap: 0.2rem; }
+  .rec-row-label { min-width: auto; }
+  .intro-header { flex-direction: column; gap: 1rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="prog-wrap"><div class="prog-fill" id="progFill"></div></div>
+
+<!-- INTRO -->
+<div id="intro" class="screen active">
+  <div class="intro-header">
+    <div class="intro-dept">
+      Verity Institute<br>
+      Division of Internal Review<br>
+      Assessment Protocol VI-DR
+    </div>
+    <div class="intro-code">
+      Session: <span id="sessionId"></span><br>
+      Status: Awaiting entry<br>
+      Clearance: Standard
+    </div>
+  </div>
+
+  <div class="intro-body">
+    <div class="intro-title">The</div>
+    <div class="intro-title-room">Danger Room</div>
+    <p class="intro-desc">
+      Five propositions about identity.<br>
+      You commit to a position.<br>
+      The room responds — specifically, to what you said.<br><br>
+      <strong>You hold your position or you move.</strong><br>
+      Either is allowed. Neither is scored.
+    </p>
+
+    <div class="propositions-list">
+      <div class="prop-list-header">Propositions — Protocol VI-DR</div>
+      <div class="prop-list-item"><span class="prop-list-num">I</span><span>To what extent is identity socially constructed?</span></div>
+      <div class="prop-list-item"><span class="prop-list-num">II</span><span>Are individuals responsible for beliefs they inherit?</span></div>
+      <div class="prop-list-item"><span class="prop-list-num">III</span><span>Is conformity necessary for social life?</span></div>
+      <div class="prop-list-item"><span class="prop-list-num">IV</span><span>Can authenticity exist?</span></div>
+      <div class="prop-list-item"><span class="prop-list-num">V</span><span>Do actions define who we are more accurately than intentions?</span></div>
+    </div>
+
+    <button class="enter-btn" onclick="enterRoom()">Enter the room →</button>
+  </div>
+
+  <div class="intro-footer">
+    <div class="intro-footer-note">Grades 11–12 · Individual &amp; Society</div>
+    <div class="intro-footer-note">Results are yours. You decide what leaves this room.</div>
+  </div>
+</div>
+
+<!-- QUESTION ROOM -->
+<div id="room" class="screen">
+  <div class="room-hud">
+    <div class="room-counter">Proposition <span id="qNum">I</span> of V</div>
+    <div class="room-phase" id="phaseTag">Commit</div>
+  </div>
+
+  <div class="proposition" id="proposition"></div>
+
+  <!-- COMMIT -->
+  <div class="commit-wrap" id="commitWrap">
+    <div class="field-label">State your position</div>
+    <textarea class="commit-input" id="commitInput"
+      placeholder="Write your position. One or two sentences."
+      rows="3" oninput="onCommitType()"></textarea>
+    <div class="commit-hint" id="commitHint"></div>
+    <div class="room-nav" style="margin-top:1.8rem;">
+      <button class="action-btn primary" id="commitBtn" onclick="submitCommit()" disabled>
+        Submit →
+      </button>
+    </div>
+  </div>
+
+  <!-- PRESSURE + HOLD/MOVE -->
+  <div class="pressure-wrap" id="pressureWrap">
+    <div class="pressure-label">Room response</div>
+    <div class="pressure-text" id="pressureText"></div>
+
+    <div class="hold-label">Does this change anything?</div>
+    <div class="hold-options">
+      <button class="hold-btn" onclick="selectHold('held')">I hold my position.</button>
+      <button class="hold-btn" onclick="selectHold('moved')">Something moved.</button>
+      <button class="hold-btn" onclick="selectHold('unsure')">I'm not sure.</button>
+    </div>
+
+    <div class="reflection-wrap" id="reflectionWrap">
+      <div class="field-label" id="reflectionLabel"></div>
+      <textarea class="reflection-input" id="reflectionInput"
+        placeholder="" rows="2" oninput="onReflectionType()"></textarea>
+    </div>
+
+    <div class="room-nav">
+      <button class="action-btn" id="nextBtn" onclick="nextProposition()" disabled>
+        Next →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- RECORD -->
+<div id="record" class="screen">
+  <div class="record-header">
+    <div class="record-title">Session record — VI-DR</div>
+    <div class="record-stamp" id="recordStamp"></div>
+  </div>
+  <div class="record-entries" id="recordEntries"></div>
+  <div class="record-rule" id="recordRule"></div>
+  <div class="synthesis-label">Synthesis</div>
+  <div class="record-close" id="recordClose"></div>
+  <div class="record-footer" id="recordFooter">
+    <button class="restart-btn" onclick="restart()">Re-enter</button>
+    <div class="share-note">You decide what leaves this room.</div>
+  </div>
+</div>
+
+<script>
+const PROXY = "https://anthropic-proxy.justin-steinmetz.workers.dev";
+
+// Generate a session ID on load
+document.getElementById('sessionId').textContent =
+  Math.random().toString(36).slice(2,6).toUpperCase() + '-' +
+  Math.random().toString(36).slice(2,6).toUpperCase();
+
+const PROPOSITIONS = [
+  {
+    roman: "I",
+    q: "To what extent is identity socially constructed?",
+    pressure_instruction: `The student has just committed to a position on whether identity is socially constructed. Your task is to apply pressure to their specific position — not to argue the opposite side, but to identify the most uncomfortable implication of what they actually said.\n\nIf they said identity is mostly or entirely socially constructed: ask them what follows from that. If your values, tastes, and self-concept were formed by forces you didn't choose, who is responsible when you act badly? What does it mean to take pride in who you are? If they said identity is not socially constructed, or is mostly individual: ask them to account for the specific social conditions that shaped what they're calling 'individual'. Where did the language come from? The values? The idea that individuality matters?\n\nDo not argue both sides. Do not offer balance. Apply pressure to what they said.`
+  },
+  {
+    roman: "II",
+    q: "Are individuals responsible for beliefs they inherit?",
+    pressure_instruction: `The student has committed to a position on whether people are responsible for beliefs they didn't choose. Apply pressure to the specific position they took.\n\nIf they said yes, people are responsible: what does that require? At what age does responsibility begin? What about beliefs so thoroughly embedded in a culture that questioning them requires access to information or education the person never had? If they said no, people aren't responsible: where does responsibility begin? If someone acts on an inherited belief that causes harm, is the harm real even if the responsibility isn't? And: does this position conveniently excuse beliefs the student themselves holds?\n\nDo not argue both sides. Apply pressure to what they said.`
+  },
+  {
+    roman: "III",
+    q: "Is conformity necessary for social life?",
+    pressure_instruction: `The student has committed to a position on whether conformity is necessary for social life. Apply pressure to the specific position they took.\n\nIf they said yes, conformity is necessary: what exactly are they defending? There is a difference between the coordination required to share a language and the conformity required to silence dissent. Which kind is necessary, and which kind are they normalising? If they said no, conformity isn't necessary: are they describing a society that exists anywhere? What do they do every day that is, in fact, a form of conformity — and what would it cost them to stop?\n\nDo not argue both sides. Apply pressure to what they said.`
+  },
+  {
+    roman: "IV",
+    q: "Can authenticity exist?",
+    pressure_instruction: `The student has committed to a position on whether authenticity can exist. Apply pressure to the specific position they took.\n\nIf they said yes, authenticity exists: ask them to describe it precisely. Is there a version of themselves that is more real than the others? What does it consist of, and how do they know it isn't also constructed? If they said no, authenticity can't exist: what follows from that? If there is no authentic self, who is performing? Who is doing the constructing? And: do they behave as if authenticity doesn't exist, or do they still feel betrayed when people are fake?\n\nDo not argue both sides. Apply pressure to what they said.`
+  },
+  {
+    roman: "V",
+    q: "Do actions define who we are more accurately than intentions?",
+    pressure_instruction: `The student has committed to a position on whether actions or intentions are more defining. Apply pressure to the specific position they took.\n\nIf they said actions define us more: what do they make of the last time they acted against their own values? Are they the action, or the person who regretted it? What about structural constraints — someone who acts badly because of circumstances they didn't choose? If they said intentions matter more: can intentions be known — even by the person who holds them? And: do they grant other people the same interpretive generosity they give themselves?\n\nDo not argue both sides. Apply pressure to what they said.`
+  }
+];
+
+const NUMERALS = ['I','II','III','IV','V'];
+let current = 0;
+let holdChoice = null;
+let record = [];
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function enterRoom() {
+  show('room');
+  loadProposition(0);
+}
+
+function loadProposition(index) {
+  current = index;
+  holdChoice = null;
+  document.getElementById('progFill').style.width = (index / PROPOSITIONS.length * 100) + '%';
+
+  const p = PROPOSITIONS[index];
+  document.getElementById('qNum').textContent = p.roman;
+  document.getElementById('phaseTag').textContent = 'Commit';
+
+  const prop = document.getElementById('proposition');
+  const commitWrap = document.getElementById('commitWrap');
+  const pressureWrap = document.getElementById('pressureWrap');
+
+  prop.classList.remove('visible');
+  commitWrap.classList.remove('visible');
+  pressureWrap.style.display = 'none';
+  pressureWrap.classList.remove('visible');
+
+  document.getElementById('commitInput').value = '';
+  document.getElementById('commitHint').textContent = '';
+  document.getElementById('commitBtn').disabled = true;
+  document.getElementById('nextBtn').disabled = true;
+  document.querySelectorAll('.hold-btn').forEach(b => b.classList.remove('selected'));
+
+  setTimeout(() => {
+    prop.textContent = p.q;
+    prop.classList.add('visible');
+    setTimeout(() => {
+      commitWrap.classList.add('visible');
+      setTimeout(() => document.getElementById('commitInput').focus(), 200);
+    }, 200);
+  }, 80);
+}
+
+function onCommitType() {
+  const val = document.getElementById('commitInput').value.trim();
+  document.getElementById('commitBtn').disabled = val.length < 15;
+  document.getElementById('commitHint').textContent = val.length < 15 ? 'keep going' : '';
+}
+
+async function submitCommit() {
+  const position = document.getElementById('commitInput').value.trim();
+  if (!position || position.length < 15) return;
+
+  const btn = document.getElementById('commitBtn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="processing">Processing<span class="dots-inline"><span></span><span></span><span></span></span></span>`;
+  document.getElementById('commitInput').disabled = true;
+  document.getElementById('phaseTag').textContent = 'Response';
+
+  const p = PROPOSITIONS[current];
+  const prompt = `${p.pressure_instruction}\n\nThe student's position:\n"${position}"\n\nWrite the pressure. Rules:\n1. Respond directly to what they said — use their language, their specific claims.\n2. Do not argue the opposite side. Find the most uncomfortable implication of their own position.\n3. No more than 120 words. Every sentence must apply pressure. Remove any sentence that could have been written without reading their answer.\n4. Do not end with a question — end with a statement that leaves them somewhere uncomfortable.\n5. No moralising. No praise. No 'good point'. Just pressure.\n6. Write in second person, directly to them.`;
+
+  try {
+    const response = await fetch(PROXY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 400,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const pressure = data.content.map(b => b.text || '').join('').trim();
+    showPressure(position, pressure);
+  } catch(err) {
+    showPressure(position, "The room failed to respond. Note that it tried.");
+  }
+
+  if (!record[current]) record[current] = {};
+  record[current].proposition = p.q;
+  record[current].position = position;
+}
+
+function showPressure(position, pressure) {
+  record[current] = record[current] || {};
+  record[current].pressure = pressure;
+
+  const commitWrap = document.getElementById('commitWrap');
+  const pressureWrap = document.getElementById('pressureWrap');
+
+  commitWrap.style.transition = 'opacity 0.35s ease';
+  commitWrap.style.opacity = '0';
+
+  setTimeout(() => {
+    commitWrap.style.display = 'none';
+    document.getElementById('pressureText').textContent = pressure;
+    pressureWrap.style.display = 'block';
+    setTimeout(() => pressureWrap.classList.add('visible'), 40);
+  }, 350);
+}
+
+function selectHold(choice) {
+  holdChoice = choice;
+  record[current] = record[current] || {};
+  record[current].hold = choice;
+  document.querySelectorAll('.hold-btn').forEach(b => b.classList.remove('selected'));
+  event.target.classList.add('selected');
+
+  const wrap = document.getElementById('reflectionWrap');
+  const label = document.getElementById('reflectionLabel');
+  const input = document.getElementById('reflectionInput');
+
+  const prompts = {
+    held:   'What still convinces you?',
+    moved:  'What changed?',
+    unsure: 'What remains unresolved?'
+  };
+
+  label.textContent = prompts[choice];
+  input.value = record[current].reflection || '';
+  input.placeholder = 'One sentence.';
+  wrap.style.display = 'block';
+  setTimeout(() => { wrap.classList.add('visible'); input.focus(); }, 30);
+  document.getElementById('nextBtn').disabled = true;
+}
+
+function onReflectionType() {
+  const val = document.getElementById('reflectionInput').value.trim();
+  record[current] = record[current] || {};
+  record[current].reflection = val;
+  document.getElementById('nextBtn').disabled = val.length < 25;
+
+  const nextBtn = document.getElementById('nextBtn');
+  const isLast = current === PROPOSITIONS.length - 1;
+  nextBtn.textContent = isLast ? 'Leave the room →' : 'Next →';
+}
+
+function nextProposition() {
+  const reflection = document.getElementById('reflectionInput').value.trim();
+  if (!holdChoice || reflection.length < 25) return;
+  record[current].reflection = reflection;
+
+  if (current === PROPOSITIONS.length - 1) {
+    showRecord();
+  } else {
+    const commitWrap = document.getElementById('commitWrap');
+    commitWrap.style.display = '';
+    commitWrap.style.opacity = '';
+    commitWrap.style.transition = '';
+    document.getElementById('commitInput').disabled = false;
+    document.getElementById('commitBtn').textContent = 'Submit →';
+
+    const reflectionWrap = document.getElementById('reflectionWrap');
+    reflectionWrap.style.display = 'none';
+    reflectionWrap.classList.remove('visible');
+    document.getElementById('reflectionInput').value = '';
+
+    loadProposition(current + 1);
+  }
+}
+
+async function showRecord() {
+  document.getElementById('progFill').style.width = '100%';
+
+  // Set record stamp
+  const now = new Date();
+  document.getElementById('recordStamp').textContent =
+    `Session: ${document.getElementById('sessionId').textContent}\n` +
+    `${now.toLocaleDateString('en-GB')} ${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
+
+  show('record');
+
+  const container = document.getElementById('recordEntries');
+  container.innerHTML = '';
+
+  record.forEach((entry, i) => {
+    const div = document.createElement('div');
+    div.className = 'record-entry';
+
+    const header = document.createElement('div');
+    header.className = 'rec-header';
+
+    const prop = document.createElement('div');
+    prop.className = 'rec-proposition';
+    prop.textContent = `${NUMERALS[i]}. ${entry.proposition}`;
+
+    const verdict = document.createElement('div');
+    verdict.className = `rec-verdict ${entry.hold || 'unsure'}`;
+    verdict.textContent = entry.hold === 'held' ? 'Held'
+                        : entry.hold === 'moved' ? 'Moved'
+                        : 'Unsure';
+
+    header.appendChild(prop);
+    header.appendChild(verdict);
+
+    const rows = document.createElement('div');
+    rows.className = 'rec-rows';
+
+    const makeRow = (label, value, cls) => {
+      const row = document.createElement('div');
+      row.className = 'rec-row';
+      const l = document.createElement('div');
+      l.className = 'rec-row-label'; l.textContent = label;
+      const v = document.createElement('div');
+      v.className = `rec-row-value${cls ? ' '+cls : ''}`; v.textContent = value || '—';
+      row.appendChild(l); row.appendChild(v);
+      return row;
+    };
+
+    rows.appendChild(makeRow('Position', entry.position, 'position'));
+    rows.appendChild(makeRow('Pressure', entry.pressure, ''));
+    rows.appendChild(makeRow('Reflection', entry.reflection, 'reflection'));
+
+    div.appendChild(header);
+    div.appendChild(rows);
+    container.appendChild(div);
+  });
+
+  setTimeout(() => container.classList.add('visible'), 200);
+  setTimeout(() => document.getElementById('recordRule').classList.add('visible'), 700);
+
+  const closeEl = document.getElementById('recordClose');
+  closeEl.innerHTML = `<span class="processing">The room is reading the record<span class="dots-inline"><span></span><span></span><span></span></span></span>`;
+  setTimeout(() => closeEl.classList.add('visible'), 1000);
+
+  const synthesis = await generateSynthesis();
+  closeEl.classList.remove('visible');
+  setTimeout(() => {
+    closeEl.innerHTML = '';
+    closeEl.textContent = synthesis;
+    closeEl.classList.add('visible');
+  }, 400);
+
+  setTimeout(() => document.getElementById('recordFooter').classList.add('visible'), 1600);
+}
+
+async function generateSynthesis() {
+  const fullRecord = record.map((entry, i) => {
+    return `Proposition ${NUMERALS[i]}: ${entry.proposition}
+Position: ${entry.position || '[none]'}
+Pressure applied: ${entry.pressure || '[none]'}
+Verdict: ${entry.hold || 'unsure'}
+Reflection: ${entry.reflection || '[none]'}`;
+  }).join('\n\n');
+
+  const prompt = `A student has just completed an identity philosophy exercise called The Danger Room. They committed to positions on five propositions, received pressure specific to what they said, chose whether they held or moved, and explained their reasoning in one sentence.\n\nHere is their complete record:\n\n${fullRecord}\n\nWrite a closing synthesis of 60–90 words. Rules:\n1. Identify the most significant contradiction, pattern, or moment of genuine movement in the record. Name it directly.\n2. If they held everything, ask what that cost. If they moved often, ask whether that was thinking or susceptibility. If their reflection sentences contradict their verdicts, name that.\n3. Read the reflection sentences carefully — they are the most honest data. A student who says 'I'm not sure' but writes a clear reflection is more certain than they admitted.\n4. No moralising. No praise. No therapeutic language. Cold, specific, accurate.\n5. Write in second person. Do not begin with 'You'.\n6. Do not summarise. Interpret.`;
+
+  try {
+    const response = await fetch(PROXY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 300,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await response.json();
+    return data.content.map(b => b.text || '').join('').trim();
+  } catch(err) {
+    return "The room read what happened. The record is yours.";
+  }
+}
+
+function restart() {
+  record = [];
+  holdChoice = null;
+  current = 0;
+  document.getElementById('progFill').style.width = '0%';
+  ['recordEntries','recordRule','recordClose','recordFooter']
+    .forEach(id => document.getElementById(id).classList.remove('visible'));
+
+  const commitWrap = document.getElementById('commitWrap');
+  commitWrap.style.display = '';
+  commitWrap.style.opacity = '';
+  commitWrap.style.transition = '';
+  document.getElementById('commitInput').disabled = false;
+  document.getElementById('commitInput').value = '';
+  document.getElementById('commitBtn').innerHTML = 'Submit →';
+  document.getElementById('commitBtn').disabled = true;
+
+  const reflectionWrap = document.getElementById('reflectionWrap');
+  reflectionWrap.style.display = 'none';
+  reflectionWrap.classList.remove('visible');
+  document.getElementById('reflectionInput').value = '';
+
+  // New session ID
+  document.getElementById('sessionId').textContent =
+    Math.random().toString(36).slice(2,6).toUpperCase() + '-' +
+    Math.random().toString(36).slice(2,6).toUpperCase();
+
+  show('intro');
+}
+</script>
+</body>
+</html>
