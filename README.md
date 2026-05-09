@@ -1,5 +1,7 @@
 # The Danger Room
 
+https://justinsteinmetz.github.io/TheDangerRoom/
+
 **A digital Socratic chamber for Grades 11–12.**  
 Issued under Assessment Protocol VI-DR · Verity Institute, Division of Internal Review.
 
